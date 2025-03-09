@@ -24,23 +24,23 @@ import torch.utils.checkpoint
 from torch import nn
 from qlinear import QLinear
 
-from ...activations import ACT2FN
-from ...cache_utils import Cache, DynamicCache, StaticCache
-from ...generation import GenerationMixin
-from ...modeling_attn_mask_utils import AttentionMaskConverter
-from ...modeling_flash_attention_utils import FlashAttentionKwargs
-from ...modeling_outputs import (
+from transformers.activations import ACT2FN
+from transformers.cache_utils import Cache, DynamicCache, StaticCache
+from transformers.generation import GenerationMixin
+from transformers.modeling_attn_mask_utils import AttentionMaskConverter
+from transformers.modeling_flash_attention_utils import FlashAttentionKwargs
+from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
     CausalLMOutputWithPast,
     QuestionAnsweringModelOutput,
     SequenceClassifierOutputWithPast,
     TokenClassifierOutput,
 )
-from ...modeling_rope_utils import ROPE_INIT_FUNCTIONS
-from ...modeling_utils import ALL_ATTENTION_FUNCTIONS, PreTrainedModel
-from ...processing_utils import Unpack
-from ...pytorch_utils import ALL_LAYERNORM_LAYERS
-from ...utils import (
+from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
+from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS, PreTrainedModel
+from transformers.processing_utils import Unpack
+from transformers.pytorch_utils import ALL_LAYERNORM_LAYERS
+from transformers.utils import (
     LossKwargs,
     add_code_sample_docstrings,
     add_start_docstrings,
@@ -48,8 +48,8 @@ from ...utils import (
     logging,
     replace_return_docstrings,
 )
-from ...utils.deprecation import deprecate_kwarg
-from .configuration_llama import LlamaConfig
+from transformers.utils.deprecation import deprecate_kwarg
+from transformers.models.llama.configuration_llama import LlamaConfig
 
 
 logger = logging.get_logger(__name__)
@@ -176,7 +176,7 @@ def apply_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
     return q_embed, k_embed
 
 
-class LlamaMLP(nn.Module):
+class QLlamaMLP(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -230,7 +230,7 @@ def eager_attention_forward(
     return attn_output, attn_weights
 
 
-class LlamaAttention(nn.Module):
+class QLlamaAttention(nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
 
     def __init__(self, config: LlamaConfig, layer_idx: int):
@@ -306,14 +306,14 @@ class LlamaAttention(nn.Module):
         return attn_output, attn_weights
 
 
-class LlamaDecoderLayer(nn.Module):
+class QLlamaDecoderLayer(nn.Module):
     def __init__(self, config: LlamaConfig, layer_idx: int):
         super().__init__()
         self.hidden_size = config.hidden_size
 
-        self.self_attn = LlamaAttention(config=config, layer_idx=layer_idx)
+        self.self_attn = QLlamaAttention(config=config, layer_idx=layer_idx)
 
-        self.mlp = LlamaMLP(config)
+        self.mlp = QLlamaMLP(config)
         self.input_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.post_attention_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
@@ -381,11 +381,11 @@ LLAMA_START_DOCSTRING = r"""
     "The bare LLaMA Model outputting raw hidden-states without any specific head on top.",
     LLAMA_START_DOCSTRING,
 )
-class LlamaPreTrainedModel(PreTrainedModel):
+class QLlamaPreTrainedModel(PreTrainedModel):
     config_class = LlamaConfig
     base_model_prefix = "model"
     supports_gradient_checkpointing = True
-    _no_split_modules = ["LlamaDecoderLayer"]
+    _no_split_modules = ["QLlamaDecoderLayer"]
     _skip_keys_device_placement = ["past_key_values"]
     _supports_flash_attn_2 = True
     _supports_sdpa = True
@@ -486,7 +486,7 @@ LLAMA_INPUTS_DOCSTRING = r"""
     "The bare LLaMA Model outputting raw hidden-states without any specific head on top.",
     LLAMA_START_DOCSTRING,
 )
-class LlamaModel(LlamaPreTrainedModel):
+class QLlamaModel(QLlamaPreTrainedModel):
     """
     Transformer decoder consisting of *config.num_hidden_layers* layers. Each layer is a [`LlamaDecoderLayer`]
 
@@ -501,7 +501,7 @@ class LlamaModel(LlamaPreTrainedModel):
 
         self.embed_tokens = nn.Embedding(config.vocab_size, config.hidden_size, self.padding_idx)
         self.layers = nn.ModuleList(
-            [LlamaDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
+            [QLlamaDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
         )
         self.norm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.rotary_emb = LlamaRotaryEmbedding(config=config)
@@ -750,14 +750,14 @@ class LlamaModel(LlamaPreTrainedModel):
 class KwargsForCausalLM(FlashAttentionKwargs, LossKwargs): ...
 
 
-class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
+class QLlamaForCausalLM(QLlamaPreTrainedModel, GenerationMixin):
     _tied_weights_keys = ["lm_head.weight"]
     _tp_plan = {"lm_head": "colwise_rep"}
     _pp_plan = {"lm_head": (["hidden_states"], ["logits"])}
 
     def __init__(self, config):
         super().__init__(config)
-        self.model = LlamaModel(config)
+        self.model = QLlamaModel(config)
         self.vocab_size = config.vocab_size
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
 
@@ -890,11 +890,11 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
     """,
     LLAMA_START_DOCSTRING,
 )
-class LlamaForSequenceClassification(LlamaPreTrainedModel):
+class QLlamaForSequenceClassification(QLlamaPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.model = LlamaModel(config)
+        self.model = QLlamaModel(config)
         self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
 
         # Initialize weights and apply final processing
@@ -989,13 +989,13 @@ SQuAD (a linear layer on top of the hidden-states output to compute `span start 
     """,
     LLAMA_START_DOCSTRING,
 )
-class LlamaForQuestionAnswering(LlamaPreTrainedModel):
+class QLlamaForQuestionAnswering(QLlamaPreTrainedModel):
     base_model_prefix = "transformer"
 
     # Copied from transformers.models.bloom.modeling_bloom.BloomForQuestionAnswering.__init__ with Bloom->Llama
     def __init__(self, config):
         super().__init__(config)
-        self.transformer = LlamaModel(config)
+        self.transformer = QLlamaModel(config)
         self.qa_outputs = nn.Linear(config.hidden_size, 2)
 
         # Initialize weights and apply final processing
@@ -1076,11 +1076,11 @@ class LlamaForQuestionAnswering(LlamaPreTrainedModel):
     """,
     LLAMA_START_DOCSTRING,
 )
-class LlamaForTokenClassification(LlamaPreTrainedModel):
+class QLlamaForTokenClassification(QLlamaPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.model = LlamaModel(config)
+        self.model = QLlamaModel(config)
         if getattr(config, "classifier_dropout", None) is not None:
             classifier_dropout = config.classifier_dropout
         elif getattr(config, "hidden_dropout", None) is not None:
@@ -1158,10 +1158,10 @@ class LlamaForTokenClassification(LlamaPreTrainedModel):
 
 
 __all__ = [
-    "LlamaForCausalLM",
-    "LlamaModel",
-    "LlamaPreTrainedModel",
-    "LlamaForSequenceClassification",
-    "LlamaForQuestionAnswering",
-    "LlamaForTokenClassification",
+    "QLlamaForCausalLM",
+    "QLlamaModel",
+    "QLlamaPreTrainedModel",
+    "QLlamaForSequenceClassification",
+    "QLlamaForQuestionAnswering",
+    "QLlamaForTokenClassification",
 ]
