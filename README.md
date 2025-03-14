@@ -8,7 +8,7 @@
 </p>
 
 <div align="center" style="line-height: 1;">
-  <a href="https://huggingface.co/hespere-ai"><b>🤗 Model</b></a> 
+  <a href="https://huggingface.co/hespere-ai/Bonsai"><b>🤗 Model</b></a> 
   <a href="https://github.com/Hespere/Bonsai/tree/main/paper/Bonsai.pdf"><b>📄 Paper</b></a> 
 </div>
 
