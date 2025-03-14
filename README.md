@@ -4,12 +4,12 @@
 <p align="center">
   <img src="figs/bonsai.png" width="200" alt="Bonsai Logo">
 
-<h3 align="center" style="font-size: 30px">Bonsai</h3>
+<h3 align="center" style="font-size: 30px">Bonsai: A Small Ternary-Weight Language Model</h3>
 </p>
 
 <div align="center" style="line-height: 1;">
-  <a href="https://huggingface.co/hespere-ai"><b>🤗 Model</b></a>, 
-  <a href="Bonsai.pdf"><b>📄 Paper</b></a> 
+  <a href="https://huggingface.co/hespere-ai"><b>🤗 Model</b></a> 
+  <a href="https://github.com/Hespere/Bonsai/tree/main/paper/Bonsai.pdf"><b>📄 Paper</b></a> 
 </div>
 
 
@@ -18,11 +18,11 @@
 
 ## Introduction
 
-Bonsai is a small 500 million parameter ternary weight language model trained by Hespere. Bonsai adopts the Llama architecture and Mistral tokenizer following Danube 3, with modified linear layers to support ternary weights. The model has been trained primarily using DCLM-Pro and Fineweb-Edu. Bonsai marks a new paradigm of efficiency, being trained in less than 5 billion tokens. 
+Bonsai is a small 500 million parameter ternary weight language model trained by Hespere. Bonsai adopts the Llama architecture and Mistral tokenizer following [Danube 3](https://arxiv.org/pdf/2407.09276v1), with modified linear layers to support ternary weights. The model has been trained primarily using DCLM-Pro and Fineweb-Edu. Bonsai marks a new paradigm of efficiency, being trained in less than 5 billion tokens.
 
 ## Results
 
-Bonsai achieves competitive performance among its peers, being one of the first ternary models to do so. Evalution results are below; for more detailed results and comparisons to other ternary models, please see the acompanying paper linked above.
+Bonsai achieves competitive performance among its peers, being one of the first ternary models to do so. Evalution results are below; for more detailed results and comparisons to other ternary models, please see the accompanying paper linked above. We use lm-eval for all benchmarks outside of MMLU and lighteval's cloze formulation for MMLU.
 
 <div align="center">
 
